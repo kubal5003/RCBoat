@@ -80,21 +80,28 @@ void loop() {
     return;
   }
 
+  // This code executes when failure_seconds_left_until_retry is negative
   int xAxis = analogRead(X_PIN);
   int yAxis = analogRead(Y_PIN);
-
+  
   sprintf(buffer, "X: %d Y: %d", xAxis, yAxis);
   if (!radio.writeFast(&buffer, SIZE)) {
     failures++;
     failure_seconds_left_until_retry = 5;
     radio.reUseTX();
-
   } else {
     display.setCursor(0, 10);            // Start at top-left corner
     display.println(buffer);
     display.display();
   }
   delay(100);
+}
+
+void steerBoat(int X, int Y) {
+  digitalWrite(8, HIGH);
+  digitalWrite(9, LOW);
+
+  
 }
 
 void setupTTFScreen() {
@@ -131,34 +138,3 @@ void setupRadio() {
   display.println("Radio setup finished.");
   display.display();
 }
-
-
-//  button_state = digitalRead(BUTTON_PIN);
-//  if (button_state == HIGH)
-//  {
-//    display.setCursor(0, 0);
-//    display.println("Sending data...");
-//    sprintf(buffer, "Iteration %d", iteration++);
-//    radio.flush_tx();
-//
-//    if (!radio.writeFast(&buffer, SIZE)) {
-//      failures++;
-//      radio.reUseTX();
-//      display.setCursor(0, 10);            // Start at top-left corner
-//      display.println("Transmission failed");
-//      display.display();
-//    } else {
-//      display.setCursor(0, 10);            // Start at top-left corner
-//      display.println(buffer);
-//      display.display();
-//
-//    }
-//    delay(1000);
-//  }
-//  else
-//  {
-//    display.setCursor(0, 0);
-//    display.println("Nothing to transmit.");
-//    display.display();
-//    delay(100);
-//  }
