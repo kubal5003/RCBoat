@@ -20,14 +20,43 @@
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
+#define ENGINE_L_IN1 8
+#define ENGINE_L_IN2 7
+#define ENGINE_L_PWM 6
+
+#define ENGINE_R_IN1 3
+#define ENGINE_R_IN2 2
+#define ENGINE_R_PWM 5
+
+#define FORWARD 1
+#define BACKWARD -1 
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 RF24 radio(9, 10); // CE, CSN
 const byte address[6] = "BOAT1";
 int lastTimeTextWasDisplayed = 0;
 char buffer[SIZE + 1];
 
+int X = 0;
+int Y = 0;
+
 void setup() {
   Serial.begin(9600);
+
+  setupTTFScreen();
+  delay(1000);
+
+  setupRadio();
+  delay(1000);
+
+
+  setupEngineController();
+  delay(1000);
+
+  
+}
+
+void setupTTFScreen() {
   //check if I2C TTF display is connected
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("Display allocation failed"));
@@ -40,7 +69,9 @@ void setup() {
   display.setCursor(0, 0);
   display.println("Starting..");
   display.display();
-  delay(1000);
+}
+
+void setupRadio() {
 
   if (!radio.begin()) {
 
@@ -54,6 +85,27 @@ void setup() {
   radio.setPALevel(RF24_PA_MIN);       //You can set this as minimum or maximum depending on the distance between the transmitter and receiver.
   radio.startListening();
   radio.setPayloadSize(SIZE);
+
+
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Radio setup finished.");
+  display.display();
+}
+
+void setupEngineController() {
+  pinMode(ENGINE_L_IN1, OUTPUT);
+  pinMode(ENGINE_L_IN2, OUTPUT);
+  pinMode(ENGINE_L_PWM, OUTPUT);
+  pinMode(ENGINE_R_IN1, OUTPUT);
+  pinMode(ENGINE_R_IN2, OUTPUT);
+  pinMode(ENGINE_R_PWM, OUTPUT);
+  analogWrite(ENGINE_L_PWM, 0); //0-255
+  analogWrite(ENGINE_R_PWM, 0); //0-255
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Radio failure.");
+  display.display();
 }
 
 void loop() {
@@ -77,7 +129,14 @@ void loop() {
       display.setCursor(0, 0);
       display.println("Message received");
       display.setCursor(0, 10);
-      display.println(buffer);
+      
+      sscanf(buffer, "X: %d Y: %d", &X, &Y);
+
+      display.print("X: ");
+      display.print(X, DEC);
+      display.print(" Y: ");
+      display.print(Y, DEC);
+
       display.display();
     } else {
       display.clearDisplay();
