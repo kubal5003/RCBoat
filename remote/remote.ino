@@ -25,11 +25,9 @@
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 RF24 radio(9, 10); // CE, CSN
-boolean button_state = 0;
 const uint8_t address[6] = "BOAT1";
-int iteration = 1;
 uint8_t failures = 0;
-int failure_seconds_left_until_retry = -1;
+bool displayConnectivityIssues = false;
 
 #define SIZE 32            // this is the maximum for this example. (minimum is 1)
 char buffer[SIZE + 1];
@@ -48,30 +46,6 @@ void setup() {
 void loop() {
   display.clearDisplay();
 
-  if ( failure_seconds_left_until_retry > 0 ) {
-    String errorMessage = "Transmission failed. Retry in " ;
-    errorMessage += failure_seconds_left_until_retry;
-    String retriesLeftMessage = "Retries left:";
-    retriesLeftMessage += 10 - failures;
-    display.setCursor(0, 0);
-    display.println(errorMessage);
-    display.setCursor(0, 20);
-    display.println(retriesLeftMessage);
-    display.display();
-    delay(1000);
-    failure_seconds_left_until_retry--;
-    return;
-  }
-
-  if(failure_seconds_left_until_retry == 0) {
-    display.setCursor(0, 0);
-    display.println("Retrying...");
-    display.display();
-    delay(1000);
-    failure_seconds_left_until_retry--;
-    return;
-  }
-
   if (failures >= 9) {
     display.setCursor(0, 0);            // Start at top-left corner
     display.println("Permanent radion failure.");
@@ -80,26 +54,43 @@ void loop() {
     return;
   }
 
-  // This code executes when failure_seconds_left_until_retry is negative
   int xAxis = analogRead(X_PIN);
   int yAxis = analogRead(Y_PIN);
   
   sprintf(buffer, "X: %d Y: %d", xAxis, yAxis);
-  if (!radio.writeFast(&buffer, SIZE)) {
-    failures++;
-    failure_seconds_left_until_retry = 5;
-    radio.reUseTX();
-  } else {
-    display.setCursor(0, 10);            // Start at top-left corner
-    display.println(buffer);
-    display.display();
-  }
-  delay(100);
-}
 
-void steerBoat(int X, int Y) {
-  digitalWrite(8, HIGH);
-  digitalWrite(9, LOW);
+  
+  display.setCursor(0, 10);            
+  display.println(buffer);
+  if(displayConnectivityIssues) {
+    display.setCursor(120, 0);            
+    display.print("*");
+  }
+
+  display.display();  
+  delay(200);
+
+  bool result = radio.writeFast(&buffer, SIZE);
+  radio.txStandBy();
+  displayConnectivityIssues = !result;
+  if(!result) {
+    radio.flush_tx();
+    
+    // if(radio.failureDetected){
+    //   display.clearDisplay();
+    //   display.setCursor(0, 0);
+    //   display.println("Radio failure detected..");
+    //   display.display();
+    //   display.clearDisplay();
+    //   display.setCursor(0, 0);            
+    //   display.println("Retrying radio setup..");
+    //   display.display();
+    //   delay(300);
+    //   setupRadio();                        // Attempt to re-configure the radio with defaults
+             
+    //   failures++;
+    // }
+  }
 
   
 }
@@ -129,6 +120,7 @@ void setupRadio() {
     while (1) {} // hold in infinite loop
   }
   radio.setAddressWidth(5);
+  radio.failureDetected = 0;    
   radio.stopListening();
   radio.openWritingPipe(address); //Setting the address where we will send the data
   radio.setPALevel(RF24_PA_MIN);  //You can set it as minimum or maximum depending on the distance between the transmitter and receiver.
