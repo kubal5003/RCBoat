@@ -26,8 +26,6 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 RF24 radio(9, 10); // CE, CSN
 const uint8_t address[6] = "BOAT1";
-uint8_t failures = 0;
-bool displayConnectivityIssues = false;
 
 #define SIZE 32            // this is the maximum for this example. (minimum is 1)
 char buffer[SIZE + 1];
@@ -46,53 +44,19 @@ void setup() {
 void loop() {
   display.clearDisplay();
 
-  if (failures >= 9) {
-    display.setCursor(0, 0);            // Start at top-left corner
-    display.println("Permanent radion failure.");
-    display.display();
-    delay(5000);
-    return;
-  }
-
   int xAxis = analogRead(X_PIN);
   int yAxis = analogRead(Y_PIN);
   
   sprintf(buffer, "X: %d Y: %d", xAxis, yAxis);
 
-  
-  display.setCursor(0, 10);            
+  display.setCursor(0, 0);            
   display.println(buffer);
-  if(displayConnectivityIssues) {
-    display.setCursor(120, 0);            
-    display.print("*");
-  }
 
   display.display();  
   delay(200);
 
-  bool result = radio.writeFast(&buffer, SIZE);
+  radio.writeFast(&buffer, SIZE);
   radio.txStandBy();
-  displayConnectivityIssues = !result;
-  if(!result) {
-    radio.flush_tx();
-    
-    // if(radio.failureDetected){
-    //   display.clearDisplay();
-    //   display.setCursor(0, 0);
-    //   display.println("Radio failure detected..");
-    //   display.display();
-    //   display.clearDisplay();
-    //   display.setCursor(0, 0);            
-    //   display.println("Retrying radio setup..");
-    //   display.display();
-    //   delay(300);
-    //   setupRadio();                        // Attempt to re-configure the radio with defaults
-             
-    //   failures++;
-    // }
-  }
-
-  
 }
 
 void setupTTFScreen() {
@@ -120,7 +84,7 @@ void setupRadio() {
     while (1) {} // hold in infinite loop
   }
   radio.setAddressWidth(5);
-  radio.failureDetected = 0;    
+  radio.setAutoAck(false);
   radio.stopListening();
   radio.openWritingPipe(address); //Setting the address where we will send the data
   radio.setPALevel(RF24_PA_MIN);  //You can set it as minimum or maximum depending on the distance between the transmitter and receiver.
