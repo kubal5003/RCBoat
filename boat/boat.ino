@@ -74,13 +74,13 @@ void setupTTFScreen() {
 void setupRadio() {
 
   if (!radio.begin()) {
-
     display.clearDisplay();
     display.setCursor(0, 0);
     display.println("Radio failure.");
     display.display();
     while (1) {} // hold in infinite loop
   }
+  radio.setAutoAck(false);
   radio.openReadingPipe(0, address);   //Setting the address at which we will receive the data
   radio.setPALevel(RF24_PA_MIN);       //You can set this as minimum or maximum depending on the distance between the transmitter and receiver.
   radio.startListening();
@@ -104,7 +104,7 @@ void setupEngineController() {
   analogWrite(ENGINE_R_PWM, 0); //0-255
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.println("Radio failure.");
+  display.println("Engines ready.");
   display.display();
 }
 
